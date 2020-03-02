@@ -1,0 +1,349 @@
+---
+title: "project"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+#Data Cleaning
+```{r}
+library(GGally)
+library(corrplot)
+library(PerformanceAnalytics)
+#1. import data
+weatherAUS <- read.csv("weatherAUS.csv")
+southBrisbane<- read.csv("southbrisbane-aq-2018.csv")
+
+#2. choose Location = Brisbane 
+Brisbane.weather <- subset(weatherAUS, weatherAUS$Location == "Brisbane")
+
+#3. select features
+Brisbane.weather <- subset(Brisbane.weather, format(as.Date(Brisbane.weather$Date), "%Y") == 2018,
+select=c(Date, Location, Rainfall, Evaporation, Sunshine, RainToday))
+
+southBrisbane.weather<-subset(southBrisbane,select=c(Date,Time,Air.Temperature..degC.,Wind.Speed..m.s., Relative.Humidity....,Nitrogen.Oxide..ppm.,Nitrogen.Dioxide..ppm.,Nitrogen.Oxides..ppm.,Carbon.Monoxide..ppm.,Wind.Direction..degTN.,PM10..ug.m.3., PM2.5..ug.m.3. ))
+
+#4. Clean Data (NA & outliers)
+
+#4.1 omit NA
+OmitNARainfall <- na.omit(Brisbane.weather$Rainfall)
+OmitNAEvaporation <- na.omit(Brisbane.weather$Evaporation)
+OmitNASunshine <- na.omit(Brisbane.weather$Sunshine)
+OmitNARainToday <- na.omit(Brisbane.weather$RainToday)
+
+southBrisbane.weather.Air.Temperature<-na.omit(southBrisbane.weather$Air.Temperature..degC.)
+southBrisbane.weather.Wind.Speed<-na.omit(southBrisbane.weather$Wind.Speed..m.s.)
+southBrisbane.weather.Relative.Humidity<-na.omit(southBrisbane.weather$Relative.Humidity....)
+southBrisbane.weather.Nitrogen.Oxide<-na.omit(southBrisbane.weather$Nitrogen.Oxide..ppm.)
+southBrisbane.weather.Nitrogen.Oxides<-na.omit(southBrisbane.weather$Nitrogen.Oxides..ppm.)
+southBrisbane.weather.Nitrogen.Dioxide<-na.omit(southBrisbane.weather$Nitrogen.Dioxide..ppm.)
+southBrisbane.weather.Carbon.Monoxide<-na.omit(southBrisbane.weather$Carbon.Monoxide..ppm.)
+southBrisbane.weather.PM10<-na.omit(southBrisbane.weather$PM10..ug.m.3.)
+southBrisbane.weather.PM2.5<-na.omit(southBrisbane.weather$PM2.5..ug.m.3.)
+southBrisbane.weather.WindDirection <- na.omit(southBrisbane$Wind.Direction..degTN.)
+
+#4.2 find mean/mode
+MeanOfRainfall <- mean(OmitNARainfall)
+MeanOfEvaporation <- mean(OmitNAEvaporation)
+MeanOfSunshine <- mean(OmitNASunshine)
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+ModeOfRainToday <- getmode(OmitNARainToday)
+
+southBrisbane.weather.Air.Temperature.mean<-mean(southBrisbane.weather.Air.Temperature)
+southBrisbane.weather.Wind.Speed.mean<-mean(southBrisbane.weather.Wind.Speed)
+southBrisbane.weather.Relative.Humidity.mean<-mean(southBrisbane.weather.Relative.Humidity)
+southBrisbane.weather.Nitrogen.Oxide.mean<-mean(southBrisbane.weather.Nitrogen.Oxide)
+southBrisbane.weather.Nitrogen.Oxides.mean<-mean(southBrisbane.weather.Nitrogen.Oxides)
+southBrisbane.weather.Nitrogen.Dioxide.mean<-mean(southBrisbane.weather.Nitrogen.Dioxide)
+southBrisbane.weather.Carbon.Monoxide.mean<-mean(southBrisbane.weather.Carbon.Monoxide)
+southBrisbane.weather.PM10.mean<-mean(southBrisbane.weather.PM10)
+southBrisbane.weather.PM2.5.mean<-mean(southBrisbane.weather.PM2.5)
+southBrisbane.weather.WindDirection.mean <- mean(southBrisbane.weather.WindDirection)
+
+#4.3 repalce NA with mean/mode
+Brisbane.weather$Rainfall[is.na(Brisbane.weather$Rainfall)] = MeanOfRainfall
+Brisbane.weather$Evaporation[is.na(Brisbane.weather$Evaporation)] = MeanOfEvaporation
+Brisbane.weather$Sunshine[is.na(Brisbane.weather$Sunshine)] = MeanOfSunshine
+Brisbane.weather$RainToday[is.na(Brisbane.weather$RainToday)] = ModeOfRainToday
+
+southBrisbane.weather$Air.Temperature..degC.[is.na(southBrisbane.weather$Air.Temperature..degC.)]<-southBrisbane.weather.Air.Temperature.mean
+ 
+southBrisbane.weather$Wind.Speed..m.s.[is.na(southBrisbane.weather$Wind.Speed..m.s.)]<-southBrisbane.weather.Wind.Speed.mean
+ 
+southBrisbane.weather$Nitrogen.Oxide..ppm.[is.na(southBrisbane.weather$Nitrogen.Oxide..ppm.)]<-southBrisbane.weather.Nitrogen.Oxide.mean
+ 
+southBrisbane.weather$Nitrogen.Oxides..ppm.[is.na(southBrisbane.weather$Nitrogen.Oxides..ppm.)]<-southBrisbane.weather.Nitrogen.Oxides.mean
+ 
+southBrisbane.weather$Nitrogen.Dioxide..ppm.[is.na(southBrisbane.weather$Nitrogen.Dioxide..ppm.)]<-southBrisbane.weather.Nitrogen.Dioxide.mean
+ 
+southBrisbane.weather$Relative.Humidity....[is.na(southBrisbane.weather$Relative.Humidity....)]<-southBrisbane.weather.Relative.Humidity.mean
+ 
+southBrisbane.weather$Carbon.Monoxide..ppm.[is.na(southBrisbane.weather$Carbon.Monoxide..ppm.)]<-southBrisbane.weather.Carbon.Monoxide.mean
+ 
+southBrisbane.weather$PM10..ug.m.3.[is.na(southBrisbane.weather$PM10..ug.m.3.)]<-southBrisbane.weather.PM10.mean
+ 
+southBrisbane.weather$PM2.5..ug.m.3.[is.na(southBrisbane.weather$PM2.5..ug.m.3.)]<-southBrisbane.weather.PM2.5.mean
+
+southBrisbane.weather$Wind.Direction..degTN.[is.na(southBrisbane.weather$Wind.Direction..degTN.)]<-southBrisbane.weather.WindDirection.mean
+ 
+
+#4.4 use Z-score method to find outliers
+Brisbane.weather.Rainfall.ZscoreValue <- scale(Brisbane.weather$Rainfall, center = TRUE, scale = TRUE)
+Brisbane.weather.Evaporation.ZscoreValue <- scale(Brisbane.weather$Evaporation, center = TRUE, scale = TRUE)
+Brisbane.weather.Sunshine.ZscoreValue <- scale(Brisbane.weather$Sunshine, center = TRUE, scale = TRUE)
+
+southBrisbane.weather.Air.Temperature.z<-scale(southBrisbane.weather$Air.Temperature..degC.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Wind.Speed.z<-scale(southBrisbane.weather$Wind.Speed..m.s.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Relative.Humidity.z<-scale(southBrisbane.weather$Relative.Humidity....,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Nitrogen.Oxide.z<-scale(southBrisbane.weather$Nitrogen.Oxide..ppm.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Nitrogen.Oxides.z<-scale(southBrisbane.weather$Nitrogen.Oxides..ppm.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Nitrogen.Dioxide.z<-scale(southBrisbane.weather$Nitrogen.Dioxide..ppm.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.Carbon.Monoxide.z<-scale(southBrisbane.weather$Carbon.Monoxide..ppm.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.PM10.z<-scale(southBrisbane.weather$PM10..ug.m.3.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.PM2.5.z<-scale(southBrisbane.weather$PM2.5..ug.m.3.,center=TRUE,scale=TRUE)
+
+southBrisbane.weather.WindDirection.z<-scale(southBrisbane.weather$Wind.Direction..degTN.,center=TRUE,scale=TRUE)
+
+
+#4.5 replace outliers with mean
+Brisbane.weather$Rainfall[which(Brisbane.weather.Rainfall.ZscoreValue >= 3 & Brisbane.weather.Rainfall.ZscoreValue <= -3)] = MeanOfRainfall
+Brisbane.weather$Evaporation[which(Brisbane.weather.Evaporation.ZscoreValue >= 3 & Brisbane.weather.Evaporation.ZscoreValue <= -3)] = MeanOfEvaporation
+Brisbane.weather$Sunshine[which(Brisbane.weather.Sunshine.ZscoreValue >= 3 & Brisbane.weather.Sunshine.ZscoreValue <= -3)] = MeanOfSunshine
+
+southBrisbane.weather$Air.Temperature..degC.[which(southBrisbane.weather.Air.Temperature.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Wind.Speed..m.s.[which(southBrisbane.weather.Wind.Speed.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Relative.Humidity....[which(southBrisbane.weather.Relative.Humidity.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Nitrogen.Oxide..ppm.[which(southBrisbane.weather.Nitrogen.Oxide.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Nitrogen.Oxides..ppm.[which(southBrisbane.weather.Nitrogen.Oxides.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Nitrogen.Dioxide..ppm.[which(southBrisbane.weather.Nitrogen.Dioxide.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Carbon.Monoxide..ppm.[which(southBrisbane.weather.Carbon.Monoxide.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$PM10..ug.m.3.[which(southBrisbane.weather.PM10.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$PM2.5..ug.m.3.[which(southBrisbane.weather.PM2.5.z>=3)]<-southBrisbane.weather.Air.Temperature.mean
+
+southBrisbane.weather$Wind.Direction..degTN.[which(southBrisbane.weather.WindDirection.z>=3)]<-southBrisbane.weather.WindDirection.mean
+
+#4.6 Aggregate south Brisbane data
+
+library(data.table)
+ 
+SouthBrisbane.Weather<-aggregate(list(southBrisbane.weather$Air.Temperature..degC.,southBrisbane.weather$Wind.Speed..m.s.,southBrisbane.weather$Relative.Humidity....,southBrisbane.weather$Nitrogen.Oxide..ppm.,southBrisbane.weather$Nitrogen.Dioxide..ppm.,southBrisbane.weather$Nitrogen.Oxides..ppm.,southBrisbane.weather$Carbon.Monoxide..ppm.,southBrisbane.weather$Wind.Direction..degTN.,southBrisbane.weather$PM10..ug.m.3.,southBrisbane.weather$PM2.5..ug.m.3.) ,FUN = mean,by = list(Date = southBrisbane.weather$Date))
+ 
+
+setnames(SouthBrisbane.Weather,old=c("c.25.6..25.5..25.3..24.9..24.6..24.6..26..27.8..29.4..30.4..31.8..","c.0.8..0.5..0.8..1..0.8..1..0.5..0.5..0.4..0.8..0.7..0.7..2..","c.84.5..84.5..84.4..84.2..84.7..84.4..80.5..75.3..68.7..64..59.4..","c.0.0156069586082783..0.005..0.01..0.007..0.005..0.008..0.007..","c.0.0148215956808638..0.012..0.014..0.013..0.014..0.013..0.009..","c.0.030179724055189..0.017..0.024..0.02..0.019..0.02..0.016..","c.0.156869086118098..0.2..0.2..0.2..0.2..0.2..0.1..0.1..0.1..","c.119..166..226..225..217..224..210..242..66..72..262..221..64..","c.15.2..10.8..17.3..17.3..16..17.2..18.5..19.5..15.8..12.3..15.9..","c.7.1..3.3..9.9..11.4..9.2..9.6..10.9..11.9..9.2..7.4..11.9.."), new=c("Air_Temperature","Wind_Speed","Relative_Humidity","Nitrogen.Oxide","Nitrogen.Dioxide","Nitrogen.Oxides","Carbon.Monoxide","Wind_Direction","PM_10","PM_2.5"))
+
+
+
+
+Brisbane.weather
+SouthBrisbane.Weather
+
+
+```
+
+
+```{r}
+#Change Date data form
+Brisbane.weather$Date <-as.Date(Brisbane.weather$Date, format = "%Y-%m-%d")
+SouthBrisbane.Weather$Date <- as.Date(SouthBrisbane.Weather$Date, format = "%d/%m/%Y")
+
+#Merge two datasets
+NewWeather <- merge(x = Brisbane.weather, y = SouthBrisbane.Weather, by = "Date", all.x = TRUE)
+NewWeather["RainToday"] <- NULL
+NewWeather["Date"] <- NULL
+NewWeather["Location"] <- NULL
+#write.csv(NewWeather, file = "merge data.csv")
+NewWeather
+```
+#Correlation
+```{r }
+install.packages("formattable")
+library(formattable)
+#Correlation Matrix
+CorrelationMatrix <- as.data.frame(cor(as.matrix(NewWeather)))
+
+CM <- as.data.frame(cor(as.matrix(NewWeather)))
+#Simplify the Matrix
+CM["Rainfall"] <- NULL
+CM["Evaporation"] <- NULL
+CM["Sunshine"] <- NULL
+CM["Air_Temperature"] <- NULL
+CM["Wind_Speed"] <- NULL
+CM["Relative_Humidity"] <- NULL
+CM["Wind_Direction"] <- NULL
+CM <- CM[-c(7,8,9,10,12,13),]
+
+#point out high, moderate and low degree correlation 
+ 
+# high degree correlation (|correlatoin|>0.5)
+formattable(CM, list(
+   Nitrogen.Oxide = formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA)),
+   Nitrogen.Dioxide = formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA)),
+  Carbon.Monoxide	= formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA)),
+   Nitrogen.Oxides = formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA)),
+   PM_10	 = formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA)),
+   PM_2.5	 = formatter("span", style = x ~ ifelse(x>0.5|x< -0.5, style(color = "red", font.weight = "bold"), NA))
+))
+
+# moderation degree correlation (0.3 < |correlation| < 0.5)
+formattable(CM, list(
+   Nitrogen.Oxide = formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA)),
+   Nitrogen.Dioxide = formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA)),
+  Carbon.Monoxide	= formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA)),
+   Nitrogen.Oxides = formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA)),
+   PM_10	 = formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA)),
+   PM_2.5	 = formatter("span", style = x ~ ifelse((x>0.3 & x<0.5)|(x< -0.3 & x> -0.5), style(color = "green", font.weight = "bold"), NA))
+))
+
+
+
+```
+
+
+
+
+#Decision Tree
+```{r}
+Weather.df <- NewWeather
+set.seed(1234)
+ 
+Label<-function(pm10){
+  breaks=c(-Inf,16.4,33,Inf)
+  labels=c("Very Good","Good","Fair")
+  #pm10 = pm10/50*100
+  cut(pm10,breaks=breaks,right=FALSE,labels=labels)
+}
+ 
+target10<-Weather.df$PM_10
+target10<-Label(target10)
+Weather.df$Target<-target10
+ 
+Weather.df.pm10 <- subset(Weather.df,select=c(Air_Temperature,Wind_Speed,Relative_Humidity,Rainfall,Evaporation,Wind_Direction, Target))
+ 
+ind <- sample(2, nrow( Weather.df.pm10), replace=TRUE, prob=c(0.7, 0.3))
+train_data <- Weather.df.pm10[ind==1,]
+test_data <- Weather.df.pm10[ind==2,]
+ 
+ 
+library(party)
+ctree <- ctree(Target ~., data = train_data)
+ 
+plot(ctree)
+```
+
+
+#Clustering
+#install packages
+```{r}
+install.packages("caret")
+install.packages("gridExtra")
+install.packages("animation")
+install.packages('ggplot2')
+library(caret)
+library(gridExtra)
+library(animation)
+library(ggplot2)
+```
+
+#prepare dataset for clustering
+```{r}
+Weather.df.NoT <- subset(Weather.df, select = c(Rainfall, Evaporation, Air_Temperature, Wind_Speed, Relative_Humidity, Wind_Direction))
+Weather.df.NoT
+```
+
+#Select the number of clusters (K)
+```{r}
+wss <- sapply(2:15, function(k){kmeans(Weather.df.NoT, k, iter.max = 10)$tot.withinss})
+
+plot(2:15, wss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of Clubsters (K)",
+     ylab = "Within groups sum of squares")
+
+library(cluster)
+git_silhouette <- function(n){
+  km <- kmeans(Weather.df.NoT, n, iter.max = 10 )
+  ss <- silhouette(km$cluster, dist(Weather.df.NoT))
+  mean(ss[, 3])
+}
+git_silhouette(3)
+git_silhouette(4)
+git_silhouette(5)
+    
+num_cluster <- 3
+```
+
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+#k-means
+set.seed(1234)
+# df <- Weather.df
+# df$Target <- NULL
+kmeans.result <- kmeans(Weather.df.NoT, num_cluster)
+kmeans.result
+
+#Add an avarialbe to dataset for the clustered data
+Weather.df$Clusters <- factor(kmeans.result$cluster)
+
+#Extract the centers for later use
+centers <- as.data.frame(kmeans.result$centers)
+
+#Make Plots
+p1 <- ggplot(data=Weather.df, aes(x=Evaporation, y=Air_Temperature, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Evaporation, y=Air_Temperature, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p2 <- ggplot(data=Weather.df, aes(x=Evaporation, y=Wind_Speed, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Evaporation, y=Wind_Speed, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p3 <- ggplot(data=Weather.df, aes(x=Evaporation, y=Wind_Direction, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Evaporation, y=Wind_Direction, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p4 <- ggplot(data=Weather.df, aes(x=Evaporation, y=Relative_Humidity, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Evaporation, y=Relative_Humidity, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p5 <- ggplot(data=Weather.df, aes(x=Air_Temperature, y=Wind_Speed, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Air_Temperature, y=Wind_Speed, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p6 <- ggplot(data=Weather.df, aes(x=Air_Temperature, y=Relative_Humidity, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Air_Temperature, y=Relative_Humidity, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p7 <- ggplot(data=Weather.df, aes(x=Air_Temperature, y=Wind_Direction, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Air_Temperature, y=Wind_Direction, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p8 <- ggplot(data=Weather.df, aes(x=Wind_Speed, y=Relative_Humidity, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Wind_Speed, y=Relative_Humidity, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p9 <- ggplot(data=Weather.df, aes(x=Wind_Speed, y=Wind_Direction, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Wind_Speed, y=Wind_Direction, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p10 <- ggplot(data=Weather.df, aes(x=Relative_Humidity, y=Wind_Direction, color = Clusters, shape = Target)) + geom_point() + geom_point(data=centers, aes(x=Relative_Humidity, y=Wind_Direction, color='center'), shape='X', size=5, show.legend=FALSE)
+
+p1
+p2
+p3
+p4
+p5
+p6
+p7
+p8
+p9
+p10
+```
+```{r}
+library(animation)
+kf <- Weather.df.NoT
+kf["Rainfall"] <- NULL
+cf<-kf[c("Relative_Humidity", "Wind_Direction", "Evaporation","Air_Temperature","Wind_Speed")]
+kmeans.ani(x = cf, centers = num_cluster)
+```
